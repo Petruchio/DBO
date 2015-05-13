@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+$: << File.dirname(__FILE__)
+require 'dbo/database'
+
+#DBO::Database.members.each do |db|
+#	puts "database: " + db.name
+#end
+
+DBO::Database.find
+
+puts DBO::Database.display
+
+p DBO::Database.all.first.schemata
+
+info = 'information_schema'
+
+exit
+
+conn.exec( 'SELECT * FROM information_schema.tables' ) do |table|
+	p table.fields
+	table.each do |row|
+		p row
+		exit
+		p row.values
+	end
+end
