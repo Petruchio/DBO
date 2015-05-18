@@ -1,5 +1,3 @@
-require 'dbo/column'
-
 module DBO
 	class Table < Base
 

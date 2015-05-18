@@ -4,14 +4,6 @@ module DBO
 		def self.find(schema:, table:, connection:)
 			ret = []
 
-			sql = <<-END
-				SELECT *
-				FROM   information_schema.columns
-				WHERE  table_schema = #{schema}
-				AND    table_name   = #{table}
-			END
-
-			where = schema.nil? ? '' : "WHERE table_schema = '#{schema}'"
 			connection.exec( "SELECT * FROM information_schema.columns #{where}" ) do |cols|
 
 				tables.fields.each { |f| attr_reader f.to_sym }

@@ -1,7 +1,3 @@
-require 'pg'
-require 'pp'
-require 'dbo/table'
-
 module DBO
 	class Schema < Base
 
@@ -19,20 +15,8 @@ module DBO
 			@tables.map { |t| t.name }
 		end
 
-		def initialize( database: )
-			@database = database
-		end
-
-		def self.find(conn)
-			ret = []
-			conn.exec( 'SELECT * FROM information_schema.schemata' ) do |schemata|
-				schemata.fields.each { |f| attr_reader f.to_sym }
-				schemata.each do |row|
-					ret << this = self.new
-					row.each { |k,v| this.instance_variable_set "@#{k}", v }
-				end
-			end
-			ret
+		def ident
+			"#{catalog_name}::#{name}"
 		end
 
 		def analyze(conn)
