@@ -31,6 +31,8 @@ class TestDBOBase < Minitest::Test
 		assert_equal       0,              DBO::Database.last.test_int
 		assert_respond_to  @db,            :other_int
 		assert_respond_to  @db,            'other_bool'
+
+		assert_equal       ({}),           DBO::Base.sql
 	end
 
 end
