@@ -16,33 +16,49 @@ module DBO
 			END
 		}
 
-		attr_reader    :schemata,      :connection
-		boolean_reader :datistemplate, :datallowconn
-		int_reader     :datconnlimit,  :encoding, :datdba, :dattablespace, :datlastsysoid
+		attr_reader :schemata,
+		            :connection,
+		            :name,
+		            :is_template,
+		            :can_connect,
+		            :connection_limit,
+		            :encoding
 
 		alias_method :schemas,      :schemata
-		alias_method :template?,    :datistemplate
-		alias_method :can_connect?, :datallowconn
+		alias_method :template?,    :is_template
+		alias_method :can_connect?, :can_connect
 
 		def initialize *args
-			@sql = {}
+			arg               = args.first
+			@name             = arg['datname']
+			@is_template      = arg['datistemplate'] == 't'
+			@can_connect      = arg['datallowconn' ]  == 't'
+			@connection_limit = arg['datconnlimit' ].to_i
+			@datdba           = arg['datdba'       ].to_i
+			@encoding         = arg['encoding'     ].to_i
+			@dattablespace    = arg['dattablespace'].to_i
+			@datlastsysoid    = arg['datlastsysoid'].to_i
+			@sql  = {}
 			self.class.sql.each { |k,v| @sql[k] = v % [ args.first['datname'] ] }
 			super *args
 		end
 
-		def name
-			datname
-		end
+		# Connect to the database to which this database object corresponds..
 
 		def connect!
 			return if     @connection.kind_of? PG::Connection
 			@connection = PG.connect dbname: name
 		end
 
+		# Disconnect from the database.
+
 		def disconnect!
 			return unless @connection.kind_of? PG::Connection
 			@connection.close
 		end
+
+		# Find all schemata under this database, and create Schema objects for
+		# them.
 
 		def find_schemata
 			return unless can_connect?
@@ -58,13 +74,23 @@ module DBO
 			db.disconnect!
 		end
 
+		# List the names of all schemata within this database.
+		# This may be different than the results of Schema.all, since
+		# There may exist Schema objects for other datagbases.
+
 		def schema_names
 			@schemata.map { |s| s.name }
 		end
 
+		# Return strings which represent all databases.  This is an artifact of
+		# the development process, and will probably be removed.
+
 		def self.display
 			all.map { |db| db.display } * "\n"
 		end
+
+		# Return a string which represents this database.  This is an artifact of
+		# the development process, and will probably be removed.
 
 		def display
 			"db: #{name}"

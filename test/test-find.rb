@@ -11,10 +11,10 @@ class TestDBOFind < Minitest::Test
 	end
 
 	def test_find
-		assert_kind_of     Array, DBO::Database.names
 		assert             DBO::Database.names.member?('template1')
+		assert_kind_of     Array,         DBO::Database.names
 		assert_kind_of     DBO::Database, @t1
-		assert_equal       4,     DBO::Database.size
+		assert_equal       4,             DBO::Database.size
 	end
 
 end
