@@ -1,10 +1,20 @@
 module DBO
 	class Table < Base
 
-		def display
-			"  |   |--table: #{name}\n"    +
-			"  |   |  { type: #{type} }\n" +
-			"  |   |"
+		attr_accessor :database, :schema, :type, :insertable
+
+		alias_method  :is_insertable?, :insertable
+
+		def initialize *args
+			arg        = args.first
+			@name      = arg['table_name']
+			@type      = arg['table_type']
+			@database  = Database[ arg['table_catalog' ] ]
+			@schema    = Schema[   arg['table_schema'  ] ]
+			@inserable = arg['is_insertable_into']       == 'YES'
+			@type      = arg['table_type']
+			@sql  = {}
+			self.class.sql.each { |k,v| @sql[k] = v % [ @name ] }
 		end
 
 		def self.find(schema: nil, connection:)
@@ -24,10 +34,6 @@ module DBO
 				end
 			end
 			ret
-		end
-
-		def analyze
-#			DBO::Column.find schema:, table:, connection: connection
 		end
 
 	end

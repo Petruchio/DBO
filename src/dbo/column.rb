@@ -1,6 +1,13 @@
 module DBO
 	class Column < Base
 
+		def initialize *args
+			arg    = args.first
+			@sql  = {}
+			self.class.sql.each { |k,v| @sql[k] = v % [ @name ] }
+			super *args
+		end
+
 		def self.find(schema:, table:, connection:)
 			ret = []
 

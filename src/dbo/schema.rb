@@ -1,14 +1,38 @@
 module DBO
 	class Schema < Base
 
-		attr_accessor :tables, :database
+		attr_accessor :name, :owner, :tables, :database
 
-		def name
-			@schema_name
+		@sql = {
+			tables:  <<-END
+				SELECT *
+				FROM   information_schema.tables
+				WHERE  table_schema = '%s'
+			END
+		}
+
+		def initialize *args
+			arg    = args.first
+			@name  = arg['schema_name']
+			@owner = arg['schema_owner']
+			@sql  = {}
+			self.class.sql.each { |k,v| @sql[k] = v % [ @name ] }
+			super *args
 		end
 
-		def owner
-			@schema_owner
+		def find_tables
+disable = <<END
+			return unless can_connect?
+			connect!
+			@connection.exec( @sql[:schemata] ) do |sch|
+				Schema.new_attr_reader *sch.fields
+				sch.each do |row|
+					ident = "%s::%s" % row.values_at( 'catalog_name', 'schema_name' )
+					next if Schema.map { |s| s.ident }.include?  ident
+					Schema.new row
+				end
+			end
+END
 		end
 
 		def table_names
@@ -25,10 +49,5 @@ module DBO
 			@tables.each { |t| puts t.display }
 		end
 
-		def display
-			"  |\n" +
-			"  |--schema: #{name}\n" +
-			"  |  \\"
-		end
 	end
 end

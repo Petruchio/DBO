@@ -2,6 +2,7 @@ lib = File.expand_path( File.dirname(__FILE__) + '/../../src' )
 $:.unshift(lib) unless $:.include?(lib)
 
 require 'dbo/base'
+require 'pg'
 
 module DBO
 	class Database < Base
@@ -9,6 +10,8 @@ module DBO
 		@schemata  = {}
 
 		@sql = {
+			databases: 'SELECT * FROM pg_database',
+
 			schemata:  <<-END
 				SELECT *
 				FROM   information_schema.schemata
@@ -39,7 +42,7 @@ module DBO
 			@dattablespace    = arg['dattablespace'].to_i
 			@datlastsysoid    = arg['datlastsysoid'].to_i
 			@sql  = {}
-			self.class.sql.each { |k,v| @sql[k] = v % [ args.first['datname'] ] }
+			self.class.sql.each { |k,v| @sql[k] = v % [ @name ] }
 			super *args
 		end
 
@@ -62,8 +65,8 @@ module DBO
 
 		def find_schemata
 			return unless can_connect?
-			db.connect!
-			db.connection.exec( @sql[:schemata] ) do |sch|
+			connect!
+			@connection.exec( @sql[:schemata] ) do |sch|
 				Schema.new_attr_reader *sch.fields
 				sch.each do |row|
 					ident = "%s::%s" % row.values_at( 'catalog_name', 'schema_name' )
@@ -71,8 +74,20 @@ module DBO
 					Schema.new row
 				end
 			end
-			db.disconnect!
 		end
+
+
+	def self.find_all
+		conn = PG.connect dbname: 'template1'
+		conn.exec( @sql[:databases] ) do |db|
+			Database.new_attr_reader *db.fields
+			db.each do |row|
+				next if Database.names.member? row['datname']
+				Database.new( row )
+			end
+		end
+		conn.close
+	end
 
 		# List the names of all schemata within this database.
 		# This may be different than the results of Schema.all, since
@@ -94,6 +109,12 @@ module DBO
 
 		def display
 			"db: #{name}"
+		end
+
+		def execute sql               # An optional block would be cool.
+			return unless can_connect?
+			connect!
+			@connection.exec sql
 		end
 
 	end

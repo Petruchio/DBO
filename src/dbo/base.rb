@@ -59,7 +59,10 @@ module DBO
 
 		def initialize( *args )
 			args = args.first || {}
-			args.each { |k,v| instance_variable_set("@#{k}", v) }
+			args.each do |k,v|
+				next unless instance_variable_get("@#{k}").nil?
+				instance_variable_set("@#{k}", v)
+			end
 		end
 
 		private
