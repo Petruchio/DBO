@@ -1,0 +1,130 @@
+require 'csv'
+require 'securerandom'
+
+module DBO
+
+	def self.connect type: 'redshift-2', **details
+		DBO::Database.new type: type, **details
+	end
+
+	class Object
+		attr_reader :name
+
+		def to_s
+			@name
+		end
+	end
+	class Database
+		attr_reader :type
+		def initialize type: 'redshift', **details
+			@type = type.downcase
+			require __dir__ + "/dbo/#{@type}.rb"
+			@conn = nil                               # FIX
+			if @type == 'redshift'
+				@conn = DBO::Connection::Redshift.new
+			end
+		end
+
+		def eraseme
+			@conn.read_pgpass
+		end
+
+		def schemata
+			@conn.schemata.map { |s| Schema.new database: self, name: s }
+		end
+
+		alias :schemas :schemata
+
+		def full_table_names
+			@conn.tables
+		end
+
+		def table_names
+			full_table_names.map { |t| t.sub /.*\./, '' }
+		end
+
+		def tables
+			table_names.map { |s| Table.new database: self, name: s }
+		end
+
+		def view_names
+			@conn.views
+		end
+
+		def views
+			view_names.map { |s| View.new database: self, name: s }
+		end
+
+		def relation_names
+			table_names + view_names
+		end
+
+		def relations
+			tables + views
+		end
+
+		def view_definition schema:, view:
+			@conn.view_def schema, view
+		end
+
+	end
+
+	class Schema < Object
+		def initialize database:, name:
+			@db   = database
+			@name = name
+		end
+		def tables
+			list = @db.table_names.grep /^#{@name}/
+			list.map { |t| Table.new database: @db, name: t }
+		end
+		def table t
+			Table.new database: @db, name: t
+		end
+	end
+
+	class Relation < Object
+		attr_reader :schema
+
+		def full_name
+			schema + '.' + name
+		end
+
+		def initialize database:, name:, schema: nil
+			@db        = database
+			sch, @name = name.split /\./
+			@schema = schema || sch || raise("Missing parameter:  schema.")
+		end
+	end
+
+	class Table < Relation
+	end
+
+	class View < Relation
+		def definition
+			@db.view_definition schema: @schema, view: @name
+		end
+		def fields
+		end
+	end
+
+	class Field
+		def initialize database:, schema: nil, name:, relation: nil, table: nil, view: nil
+			rel        = relation || table || view || raise(
+				"Missing parameter:  must specify relation, table, or view."
+			)
+			@db        = database
+			sch, @name = name.split /\./   # Always correct?
+		end
+	end
+
+	class Row
+	end
+	class Cursor
+	end
+	class Key
+	end
+	module Connection
+	end
+
+end
