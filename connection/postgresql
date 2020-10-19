@@ -1,0 +1,13 @@
+require 'pg'
+require 'dbo/caddy/pgpass'
+
+module DBO
+	module Connection
+		class PostgreSQL
+
+			def initialize *name, **args
+			end
+
+		end
+	end
+end

@@ -42,7 +42,7 @@ module DBO
 			end
 
 			def read_pgpass
-				target = ENV['PGPASSFILE'] || ENV['HOME'] + '/.pgpass'
+				target = ENV['HOME'] + '/.pgpass'
 				@known_databases ||= []
 				File.open(target).each do |line|
 					line.chomp!

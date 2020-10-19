@@ -1,3 +1,11 @@
+---> databases
+
+SELECT * FROM pg_catalog.pg_database
+
+---> database_names
+
+SELECT datname FROM pg_catalog.pg_database
+
 ---> views
 
 SELECT * FROM pg_catalog.pg_views
