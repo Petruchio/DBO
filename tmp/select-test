@@ -1,7 +1,0 @@
----> step_1
-
-select distinct _table from table_columns limit 3;
-
----> step_2
-
-select * from %{_table} limit 4;
