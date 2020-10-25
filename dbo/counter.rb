@@ -37,7 +37,7 @@ module DBO
 			units = [ :day, :hour, :min, :sec ]
 			parts = units.map { |u| [u, base.send(u)] }.to_h
 			parts[:day] -= 1
-			ret = "%i:%02i:%02i:%02i elapsed" % parts.values
+			ret = "%i:%02i:%02i:%02i" % parts.values
 			ret.sub /^0:(?:00:)(?:0)?/, ''
 		end
 	end

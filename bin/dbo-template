@@ -4,6 +4,7 @@ require 'optparse'
 require 'dbo/caddy/sql'
 require 'io/console'
 require 'dbo/counter'
+require 'json'
 
 prog    = File.basename $0
 version = '0.2'
@@ -65,14 +66,14 @@ def go_get db_handle, caddy, key_list, stack_level, options
 					warn bar
 					warn e.message
 					exit
-				rescue PG::UndefinedTable => e                              # PostgreSQL only
+				rescue PG::UndefinedTable => e                               # PostgreSQL only
 					warn "Unknown relation in #{query}.  SQL syntax dump:"
 					warn bar
 					warn sql
 					warn bar
 					warn e.message
 					exit
-				rescue PG::SyntaxError => e                              # PostgreSQL only
+				rescue PG::SyntaxError => e                                  # PostgreSQL only
 					warn "Error processing #{query}.  SQL syntax dump:"
 					warn bar
 					warn sql
@@ -80,12 +81,13 @@ def go_get db_handle, caddy, key_list, stack_level, options
 					warn e.message
 					exit
 				end
+				sleep options[:throttle] if options.has_key? :throttle
 			end
 			report c, n: false
 		end
 	end
 
-	report "\nCompleted #{query}  " + c.elapsed_time + " so far.", bar
+	report "\nCompleted #{query}:  " + c.elapsed_time + " elasped so far.", bar
 	ret
 end
 
@@ -123,6 +125,10 @@ OptionParser.new do |opts|
 		options[:user]   = u
 	end
 
+	opts.on('-J', '--json', 'print query results in JSON') do |j|
+		options[:json]   = j
+	end
+
 	opts.on(
 		'-t',
 		'--test',
@@ -138,6 +144,14 @@ OptionParser.new do |opts|
 	) do
 		options[:verbose] = true
 		alias report  loud
+	end
+
+	opts.on(
+		'-TSECONDS',
+		'--throttle=SECONDS',
+		'pause between database queries'
+	) do |t|
+			options[:throttle]   = t.to_f
 	end
 
 	opts.on('-V', '--version', 'output version information and exit') do
@@ -182,18 +196,14 @@ if options[:test]
 		puts '-' * 80
 		puts record.strip
 	end
+elsif options[:json]
+	out.each do |record|
+		puts record.to_json
+	end
 else
 	out.each do |record|
 		puts record.values * "\t"
 	end
-end
-
-def format_time t
-	base  = Time.new(0) + t
-	units = [ :day, :hour, :min, :sec ]
-	parts = units.map { |u| [u, base.send(u)] }.to_h
-	parts[:day] -= 1
-	"%i:%02i:%02i:%02i" % parts.values
 end
 
 
@@ -202,7 +212,7 @@ end
 report bar,
 	"Start time:     " + counter.start_time.to_s,
 	"End time:       " + Time.now.to_s,
-	"Total runtime:  " + counter.elapsed_time.sub(/ elapsed/, '')
+	"Total runtime:  " + counter.elapsed_time
 
 
 
