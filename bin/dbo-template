@@ -17,15 +17,6 @@ def getpass
 end
 
 
-def format_time t
-	base  = Time.new(0) + t
-	units = [ :day, :hour, :min, :sec ]
-	parts = units.map { |u| [u, base.send(u)] }.to_h
-	parts[:day] -= 1
-	"%i:%02i:%02i:%02i" % parts.values
-end
-
-
 
 def loud *messages, n: true
 	if n
@@ -48,7 +39,7 @@ alias counter quiet
 def go_get db_handle, caddy, key_list, stack_level, options
 	query      = key_list.pop
 	sql_tmpl   = caddy[query]
-	c          = Counter.new
+	c          = DBO::Counter.new
 	ret        = []
 	results_of_queries = [ [ {} ] ]
 
@@ -164,8 +155,8 @@ end.parse!
 
 
 exit if ARGV.empty?           # Fix:  should print usage before qutting
-
 target = ARGV.first           # Fix:  handle multiple target scripts
+
 
 case options[:rdbms]
 when 'postgresql'
@@ -178,9 +169,11 @@ else
 	raise "Unknown RDBMS:  " + options[:rdbms].to_s
 end
 
-caddy = DBO::Caddy::SQL.new target
 
-report "Start time: " + (start_time = Time.new).to_s + "\n", bar
+caddy   = DBO::Caddy::SQL.new target
+counter = DBO::Counter.new
+
+report "Start time: " + counter.start_time.to_s, bar
 
 out = go_get( dbo, caddy, caddy.keys, 1, options ).flatten  # Fix: "flatten" shouldn't be necessary.
 
@@ -195,11 +188,21 @@ else
 	end
 end
 
-end_time = Time.new
+def format_time t
+	base  = Time.new(0) + t
+	units = [ :day, :hour, :min, :sec ]
+	parts = units.map { |u| [u, base.send(u)] }.to_h
+	parts[:day] -= 1
+	"%i:%02i:%02i:%02i" % parts.values
+end
+
+
+# Fix: decide out how elapsed should work
+
 report bar,
-	"Start time:     " + start_time.to_s,
-	"End time:       " + end_time.to_s,
-	"Total runtime:  " + format_time(end_time - start_time)
+	"Start time:     " + counter.start_time.to_s,
+	"End time:       " + Time.now.to_s,
+	"Total runtime:  " + counter.elapsed_time.sub(/ elapsed/, '')
 
 
 
