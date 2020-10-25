@@ -6,6 +6,7 @@ require 'io/console'
 require 'dbo/counter'
 require 'dbo/reporter'
 require 'json'
+require 'csv'
 
 extend DBO::Reporter
 
@@ -118,6 +119,10 @@ OptionParser.new do |opts|
 		options[:json]   = j
 	end
 
+	opts.on('-c', '--csv', 'print query results in CSV (without header)') do |c|
+		options[:csv]   = c
+	end
+
 	opts.on(
 		'-t',
 		'--test',
@@ -188,6 +193,10 @@ if options[:test]
 elsif options[:json]
 	out.each do |record|
 		puts record.to_json
+	end
+elsif options[:csv]
+	out.each do |record|
+		puts record.values.to_csv
 	end
 else
 	out.each do |record|
