@@ -49,27 +49,12 @@ def go_get db_handle, caddy, key_list, stack_level, options
 			else
 				begin
 					ret << db_handle.exec(sql)
-				rescue PG::UndefinedColumn => e                              # PostgreSQL only
-					warn "Unknown column in #{query}.  SQL syntax dump:"
-					warn bar
-					warn sql
-					warn bar
-					warn e.message
-					exit
-				rescue PG::UndefinedTable => e                               # PostgreSQL only
-					warn "Unknown relation in #{query}.  SQL syntax dump:"
-					warn bar
-					warn sql
-					warn bar
-					warn e.message
-					exit
-				rescue PG::SyntaxError => e                                  # PostgreSQL only
-					warn "Error processing #{query}.  SQL syntax dump:"
-					warn bar
-					warn sql
-					warn bar
-					warn e.message
-					exit
+				rescue PG::UndefinedColumn => e
+					db_handle.fail e, "Unknown column in #{query}.", sql
+				rescue PG::UndefinedTable => e
+					db_handle.fail e, "Unknown relation in #{query}.", sql
+				rescue PG::SyntaxError => e
+					db_handle.fail e, "Syntax error in #{query}.", sql
 				end
 				sleep options[:throttle] if options.has_key? :throttle
 			end
@@ -100,14 +85,14 @@ OptionParser.new do |opts|
 		'--rdbms=RDBMS',
 		'the database software (case-insensitive; default is PostgreSQL)'
 	) do |r|
-		options[:rdbms] = r
+		options[:rdbms]  = r
 	end
 
 	opts.on('-HHOST', '--host=HOST', 'hostname (default is localhost)') do |h|
 		options[:host]   = h
 	end
 
-	opts.on('-dDBNAME', '--database=DBNAME', 'database name)') do |d|
+	opts.on('-dDBNAME', '--database=DBNAME', 'database name') do |d|
 		options[:dbname] = d
 	end
 
@@ -120,7 +105,7 @@ OptionParser.new do |opts|
 	end
 
 	opts.on('-c', '--csv', 'print query results in CSV (without header)') do |c|
-		options[:csv]   = c
+		options[:csv]    = c
 	end
 
 	opts.on(

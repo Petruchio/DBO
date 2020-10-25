@@ -34,6 +34,15 @@ module DBO
 				@conn.exec(*args).to_a
 			end
 
+			def bar
+				'-' * 80 + "\n"
+			end
+
+			def fail error, message, sql
+				warn "#{message}  SQL dump:", bar, sql, bar, error.message
+				exit
+			end
+
 
 		end
 	end

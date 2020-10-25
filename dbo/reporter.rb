@@ -14,11 +14,8 @@ module DBO
 			return unless @loud
 
 			messages.each do |m|
-				if n
-					$stderr.puts  m
-				else
-					$stderr.print m
-				end
+				m += "\n" if n
+				$stderr.print m
 			end
 		end
 

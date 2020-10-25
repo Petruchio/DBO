@@ -1,0 +1,94 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'dbo/connection/postgresql'
+
+prog    = File.basename $0
+cmd     = ARGV.shift
+options = {}
+
+OptionParser.new do |opts|
+	opts.banner = "Usage: #{prog} <command> [options]"
+	opts.on( '-o', '--output FILE', 'Write the results to FILE' )
+	opts.on( '-s', '--save',        'Write the results to an automatically-named file' )
+	opts.on( '-h', '--help',        'Display this screen' ) do
+		puts opts
+		exit
+	end
+end.parse! into: options
+
+banners = {
+	tables:          "Usage: tables [options]",
+	views:           "Usage: views [options]",
+	schemata:        "Usage: schemata [options]",
+	"view-to-table": "Usage: tables [options]",
+}
+
+options = {
+	tables:           ['-s', '--schemata SCHEMATA', ''],
+	views:            ['-s', '--schemata SCHEMATA', ''],
+	schemata:         [],
+	"view-to-table":  ['-s', '--schemata SCHEMATA', '']
+}
+
+OptionParser.new do |opts|
+	opts.banner = banners[cmd]
+	opts.on( *options[cmd] ) do |v|
+
+
+	tables: OptionParser.new do |opts|
+		opts.banner = "Usage: tables [options]"
+		opts.on("-s", "--schemata SCHEMATA", "") do |v|
+			options[:force] = v
+		end
+	end,
+
+	views: OptionParser.new do |opts|
+		opts.banner = "Usage: baz [options]"
+		opts.on("-q", "--[no-]quiet", "quietly run ") do |v|
+			options[:quiet] = v
+		end
+	end,
+
+	schemata: OptionParser.new do |opts|
+		opts.banner = "Usage: baz [options]"
+		opts.on("-q", "--[no-]quiet", "quietly run ") do |v|
+			options[:quiet] = v
+		end
+	end,
+
+	"view-to_table": OptionParser.new do |opts|
+		opts.banner = "Usage: baz [options]"
+		opts.on("-q", "--[no-]quiet", "quietly run ") do |v|
+			options[:quiet] = v
+		end
+	end
+
+}
+
+$dbo = DBO::Connection::Postgresql.new
+
+puts "Being quick"                          if options[:quick]
+
+rs = Redshift.new
+
+args = ARGV.to_a
+
+unless STDIN.tty?
+	args += STDIN.map { |w| w.chomp }
+end
+
+command = false
+
+case command
+	when 'tables'
+		puts rs.tables
+	when 'views'
+		puts rs.views
+	when 'schemata'
+		puts rs.schemata
+	when 'view-to-table'
+		puts rs.dump_view_as_table( view: args.first )
+	else
+		abort "Unknown comand: #{command}"
+end
