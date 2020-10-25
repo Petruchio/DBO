@@ -1,0 +1,250 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'dbo/caddy/sql'
+require 'io/console'
+
+prog    = File.basename $0
+version = '0.1'
+
+
+trap('INT') { warn "\nERROR:  canceling due to user request."; exit }
+
+
+def getpass
+	STDIN.getpass('Password: ')
+end
+
+
+def format_time t
+	base  = Time.new(0) + t
+	units = [ :day, :hour, :min, :sec ]
+	parts = units.map { |u| [u, base.send(u)] }.to_h
+	parts[:day] -= 1
+	"%i:%02i:%02i:%02i" % parts.values
+end
+
+
+
+class Counter
+	def initialize
+		reset
+		@t1 = Time.now
+		@last_report = nil
+	end
+	def reset
+		@i = 0
+	end
+	def to_s
+		@i += 1
+		return '.' unless @i % 10 == 0
+		return "%-4i %22s\n" % [ @i, elapsed_time_if_new ]
+	end
+	def elapsed_seconds
+		Time.now - @t1
+	end
+	def elapsed_time
+		format_time(elapsed_seconds)
+	end
+	def elapsed_time_if_new
+		old = @last_report
+		@last_report = new = elapsed_time
+		return '' if old == new
+		format_time(elapsed_seconds)
+	end
+	def format_time t
+		base  = Time.new(0) + t
+		units = [ :day, :hour, :min, :sec ]
+		parts = units.map { |u| [u, base.send(u)] }.to_h
+		parts[:day] -= 1
+		ret = "%i:%02i:%02i:%02i elapsed" % parts.values
+		ret.sub /^0:(?:00:)(?:0)?/, ''
+	end
+end
+
+
+
+def loud *messages, n: true
+	if n
+		messages.each { |m| $stderr.puts m }
+	else
+		messages.each { |m| $stderr.print m }
+	end
+end
+
+def quiet *args
+end
+
+
+
+alias report  quiet
+alias counter quiet
+
+
+
+def go_get db_handle, caddy, key_list, stack_level, options
+	query      = key_list.pop
+	sql_tmpl   = caddy[query]
+	c          = Counter.new
+	ret        = []
+	results_of_queries = [ [ {} ] ]
+
+	unless key_list.empty?
+		results_of_queries = go_get(db_handle, caddy, key_list, stack_level + 1, options)
+	end
+
+	report "Processing #{query} (#{results_of_queries.flatten.length} queries)"
+
+	results_of_queries.each do |param_list|
+		param_list.each do |params|
+			params.transform_keys! { |k| k.to_sym }
+			sql = sql_tmpl % params
+			if( options[:test] && stack_level == 1)
+				ret << sql
+			else
+				begin
+					ret << db_handle.exec(sql)
+				rescue PG::UndefinedColumn => e                              # PostgreSQL only
+					warn "Unknown column in #{query}.  SQL syntax dump:"
+					warn bar
+					warn sql
+					warn bar
+					warn e.message
+					exit
+				rescue PG::UndefinedTable => e                              # PostgreSQL only
+					warn "Unknown relation in #{query}.  SQL syntax dump:"
+					warn bar
+					warn sql
+					warn bar
+					warn e.message
+					exit
+				rescue PG::SyntaxError => e                              # PostgreSQL only
+					warn "Error processing #{query}.  SQL syntax dump:"
+					warn bar
+					warn sql
+					warn bar
+					warn e.message
+					exit
+				end
+			end
+			report c, n: false
+		end
+	end
+
+	report "\nCompleted #{query}  " + c.elapsed_time + " so far.", bar
+	ret
+end
+
+
+
+def bar
+	'-' * 80 + "\n"
+end
+
+
+
+options = { user: ENV['USER'], rdbms: 'postgresql', host: 'localhost' }
+
+OptionParser.new do |opts|
+
+	opts.banner = "Usage: #{prog} [options] <filename>"
+
+	opts.on(
+		'-rRDBMS',
+		'--rdbms=RDBMS',
+		'the database software (case-insensitive; default is PostgreSQL)'
+	) do |r|
+		options[:rdbms] = r
+	end
+
+	opts.on('-HHOST', '--host=HOST', 'hostname (default is localhost)') do |h|
+		options[:host]   = h
+	end
+
+	opts.on('-dDBNAME', '--database=DBNAME', 'database name)') do |d|
+		options[:dbname] = d
+	end
+
+	opts.on('-uUSER', '--user=USERNAME', 'username (default is $USER)') do |u|
+		options[:user]   = u
+	end
+
+	opts.on(
+		'-t',
+		'--test',
+		"test by printing final SQL commands, without executing them"
+	) do
+		options[:test] = true
+	end
+
+	opts.on(
+		'-v',
+		'--verbose',
+		'narrate the queries as they go, with a counter and timer'
+	) do
+		options[:verbose] = true
+		alias report  loud
+	end
+
+	opts.on('-V', '--version', 'output version information and exit') do
+		puts prog + ' ' + version
+		exit
+	end
+
+	opts.on('-h', '--help', 'display this help and exit') do
+		puts opts
+		exit
+	end
+
+
+end.parse!
+
+
+prog    = File.basename $0
+exit if ARGV.empty?           # Fix:  should print usage before qutting
+
+target = ARGV.first           # Fix:  handle multiple target scripts
+
+case options[:rdbms]
+when 'postgresql'
+	require 'dbo/connection/postgresql'
+	dbo   = DBO::Connection::PostgreSQL.new dbname: 'brighthouse'
+when 'sqlserver'
+	require 'dbo/connection/sqlserver'
+	dbo    = DBO::Connection::SQLServer.new password: getpass
+else
+	raise "Unknown RDBMS:  " + options[:rdbms].to_s
+end
+
+caddy = DBO::Caddy::SQL.new target
+
+report "Start time: " + (start_time = Time.new).to_s + "\n", bar
+
+out = go_get( dbo, caddy, caddy.keys, 1, options ).flatten  # Fix: "flatten" shouldn't be necessary.
+
+if options[:test]
+	out.each do |record|
+		puts '-' * 80
+		puts record.strip
+	end
+else
+	out.each do |record|
+		puts record.values * "\t"
+	end
+end
+
+end_time = Time.new
+report bar,
+	"Start time:     " + start_time.to_s,
+	"End time:       " + end_time.to_s,
+	"Total runtime:  " + format_time(end_time - start_time)
+
+
+
+__END__
+
+
+@chars = %W( * ~ # = @ + )
+def bar
+	puts (@chars.unshift @chars.pop).first * 80
+end

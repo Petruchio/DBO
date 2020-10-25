@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+prog    = File.basename $0
+version = '0.1'
+
+options = {}
+
+OptionParser.new do |opts|
+
+	opts.banner = "Usage: #{prog} [options]"
+
+	opts.on(
+		'-t',
+		'--test',
+		"test by printing final SQL commands, without executing them"
+	) do
+		options[:test] = true
+	end
+
+	opts.on('-v', '--version', 'output version information and exit') do
+		puts prog + ' ' + version
+		exit
+	end
+
+	opts.on('-h', '--help', 'display this help and exit') do
+		puts opts
+		exit
+	end
+
+
+end.parse!
+
+
+p options
+
+
+
+
+__END__
+
+
+OptionParser.new do |opts|
+
+	opts.banner = "Usage: #{prog} [options]"
+
+	opts.on('-wFILE', '--watch=FILE', 'Watch a file') do |w|
+		options[:watch] ||= {}
+		options[:watch][w] = File.mtime w
+	end
+
+	opts.on(
+		'-cCOMMAND',
+	 	'--command=COMMAND',
+	 	'Command to run when a watched file changes'
+	) do |d|
+		options[:command] ||= []
+		options[:command] << d
+	end
+
+	opts.on(
+		'-b',
+		'--bar',
+		'print a bar after the output of each command'
+	) do
+		options[:bar] = true
+	end
+
+	opts.on('-v', '--version', 'output version information and exit') do
+		puts opts
+		exit
+	end
+
+	opts.on('-h', '--help', 'display this help and exit') do
+		puts opts
+		exit
+	end
+
+
+end.parse!
