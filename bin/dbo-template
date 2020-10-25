@@ -4,7 +4,10 @@ require 'optparse'
 require 'dbo/caddy/sql'
 require 'io/console'
 require 'dbo/counter'
+require 'dbo/reporter'
 require 'json'
+
+extend DBO::Reporter
 
 prog    = File.basename $0
 version = '0.2'
@@ -12,27 +15,13 @@ version = '0.2'
 
 trap('INT') { warn "\nERROR:  canceling due to user request."; exit }
 
-
 def getpass
 	STDIN.getpass('Password: ')
-end
-
-
-
-def loud *messages, n: true
-	if n
-		messages.each { |m| $stderr.puts m }
-	else
-		messages.each { |m| $stderr.print m }
-	end
 end
 
 def quiet *args
 end
 
-
-
-alias report  quiet
 alias counter quiet
 
 
@@ -143,7 +132,7 @@ OptionParser.new do |opts|
 		'narrate the queries as they go, with a counter and timer'
 	) do
 		options[:verbose] = true
-		alias report  loud
+		be_loud
 	end
 
 	opts.on(
@@ -207,19 +196,7 @@ else
 end
 
 
-# Fix: decide out how elapsed should work
-
 report bar,
 	"Start time:     " + counter.start_time.to_s,
 	"End time:       " + Time.now.to_s,
 	"Total runtime:  " + counter.elapsed_time
-
-
-
-__END__
-
-
-@chars = %W( * ~ # = @ + )
-def bar
-	puts (@chars.unshift @chars.pop).first * 80
-end
