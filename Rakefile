@@ -4,6 +4,10 @@ Rake::TestTask.new do |t|
 	t.pattern = "test/*.rb"
 end
 
+task :push do |t|
+	puts system('git push -u origin main')
+end
+
 task default: [:test]
 
 __END__

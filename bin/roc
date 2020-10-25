@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+
+require 'optionparser'
+
+options = {}
+
+OptionParser.new do |opts|
+
+	opts.banner = "Usage: #{$0} [options]"
+
+	opts.on('-wFILE', '--watch=FILE', 'Watch a file') do |w|
+		options[:watch] ||= {}
+		options[:watch][w] = File.mtime w
+	end
+
+	opts.on(
+		'-cCOMMAND',
+	 	'--command=COMMAND',
+	 	'Command to run when a watched file changes'
+	) do |d|
+		options[:command] ||= []
+		options[:command] << d
+	end
+
+	opts.on(
+		'-b',
+		'--bar',
+		'print a bar after the output of each command'
+	) do
+		options[:bar] = true
+	end
+
+	opts.on('-v', '--version', 'output version information and exit') do
+		puts opts
+		exit
+	end
+
+	opts.on('-h', '--help', 'display this help and exit') do
+		puts opts
+		exit
+	end
+
+
+end.parse!
+
+
+@chars = %W( * ~ # = @ + )
+def bar
+	puts (@chars.unshift @chars.pop).first * 80
+end
+
+change = false
+
+while sleep(1)
+	options[:watch].each do |file, mtime|
+		t2 = File.mtime file
+		next if mtime == t2
+		change = true
+		options[:watch][file] = t2
+	end
+	next unless change
+	options[:command].each { |command| puts `#{command}` }
+	change = false
+	bar if options[:bar]
+end
