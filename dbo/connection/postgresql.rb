@@ -17,6 +17,7 @@ module DBO
 				# There's also a tty argument for older versions of PostgreSQL,
 				# but ignore that until it becomes an issue.
 
+				name = name.uniq.reject { |n| n.nil? }
 				arguments = (name.size > 0) ? @pgpass[name.first] : args
 
 				@conn = PG.connect **arguments

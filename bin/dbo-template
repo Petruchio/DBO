@@ -138,7 +138,7 @@ end.parse!
 
 target = ARGV.first           # Fix:  handle multiple target scripts
 
-#pp options
+pp options
 #puts bar
 #exit
 
