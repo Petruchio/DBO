@@ -104,11 +104,11 @@ OptionParser.new do |opts|
 	end
 
 	opts.on('-J', '--json', 'print query results in JSON') do |j|
-		options[:json]   = j
+		output :json
 	end
 
 	opts.on('-c', '--csv', 'print query results in CSV (without header)') do |c|
-		options[:csv]    = c
+		output :csv
 	end
 
 	opts.on(     # Fix: should be read-only
@@ -116,6 +116,7 @@ OptionParser.new do |opts|
 		'--test',
 		"test by printing final SQL commands, without executing them"
 	) do
+		output :sql
 		options[:test] = true
 	end
 
@@ -172,24 +173,7 @@ report "Start time: " + counter.start_time.to_s, bar
 
 out = go_get( dbo, caddy, caddy.keys, 1, options ).flatten  # Fix: "flatten" shouldn't be necessary.
 
-if options[:test]
-	out.each do |record|
-		puts bar
-		puts record.strip
-	end
-elsif options[:json]
-	out.each do |record|
-		puts record.to_json
-	end
-elsif options[:csv]
-	out.each do |record|
-		puts record.values.to_csv
-	end
-else
-	out.each do |record|
-		puts record.values * "\t"
-	end
-end
+print_records out
 
 
 report bar,
