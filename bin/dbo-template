@@ -22,6 +22,10 @@ end
 
 ARGV << '-h' if ARGV.empty?
 
+def pragma? key    # encapsulate, because the syntax isn't settled
+	key =~ /^@/
+end
+
 def go_get db_handle, caddy, key_list, stack_level, options
 	query      = key_list.pop
 	sql_tmpl   = caddy[query]
@@ -31,6 +35,16 @@ def go_get db_handle, caddy, key_list, stack_level, options
 
 	unless key_list.empty?
 		results_of_queries = go_get(db_handle, caddy, key_list, stack_level + 1, options)
+	end
+
+	if query =~ /^@begin/
+		report "Starting transaction.\n", bar
+		ret << db_handle.exec('BEGIN')
+		return results_of_queries
+	elsif query =~ /^@commit/                 # Fix: if last, won't print
+		report "Committing transaction.\n", bar # Fix: -t will still execute writes
+		ret << db_handle.exec('COMMIT')
+		return results_of_queries
 	end
 
 	report "Processing #{query} (#{results_of_queries.flatten.length} queries)"
@@ -97,7 +111,7 @@ OptionParser.new do |opts|
 		options[:csv]    = c
 	end
 
-	opts.on(
+	opts.on(     # Fix: should be read-only
 		'-t',
 		'--test',
 		"test by printing final SQL commands, without executing them"
@@ -137,11 +151,6 @@ end.parse!
 
 
 target = ARGV.first           # Fix:  handle multiple target scripts
-
-pp options
-#puts bar
-#exit
-
 
 
 case options[:rdbms]
