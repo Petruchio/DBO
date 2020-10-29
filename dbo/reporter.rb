@@ -1,5 +1,6 @@
 module DBO
 	module Reporter
+
 		attr_accessor :loud
 		@loud = true
 
@@ -10,6 +11,18 @@ module DBO
 			@loud = true
 		end
 
+		def output style
+			case style
+			when :json
+				alias print_records print_records_as_json
+			when :csv
+				alias print_records print_records_as_csv
+			when :tsv
+				alias print_records print_records_as_tsv
+			end
+		end
+
+
 		def report *messages, n: true
 			return unless @loud
 
@@ -17,10 +30,6 @@ module DBO
 				m += "\n" if n
 				$stderr.print m
 			end
-		end
-
-		def bar
-			'-' * 80 + "\n"
 		end
 
 		def print_records_as_json records
@@ -41,27 +50,16 @@ module DBO
 			end
 		end
 
-		def print_values_as_sql records
-			records.each do |r|
-				puts bar
-				puts r.strip
-			end
+		def print_sql sql
+			puts bar
+			puts sql.strip
+		end
+
+		def bar
+			'-' * 80 + "\n"
 		end
 
 		alias print_records print_records_as_tsv
-
-		def output style
-			case style
-			when :json
-				alias print_records print_records_as_json
-			when :csv
-				alias print_records print_records_as_csv
-			when :tsv
-				alias print_records print_records_as_tsv
-			when :sql
-				alias print_records print_values_as_sql
-			end
-		end
 
 	end
 end

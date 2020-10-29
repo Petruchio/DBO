@@ -53,11 +53,15 @@ def go_get db_handle, caddy, key_list, stack_level, options
 		param_list.each do |params|
 			params.transform_keys! { |k| k.to_sym }
 			sql = sql_tmpl % params
-			if( options[:test] && stack_level == 1)
-				ret << sql
+			if( options[:test] && stack_level == 1 )
+				print_sql sql
 			else
 				begin
-					ret << db_handle.exec(sql)
+					if stack_level == 1
+						print_records db_handle.exec(sql)
+					else
+						ret << db_handle.exec(sql)
+					end
 				rescue PG::UndefinedColumn => e
 					db_handle.fail e, "Unknown column in #{query}.", sql
 				rescue PG::UndefinedTable => e
@@ -117,6 +121,7 @@ OptionParser.new do |opts|
 		"test by printing final SQL commands, without executing them"
 	) do
 		output :sql
+		flag
 		options[:test] = true
 	end
 
@@ -127,6 +132,10 @@ OptionParser.new do |opts|
 	) do
 		options[:verbose] = true
 		be_loud
+	end
+
+	opts.on('-HHOST', '--host=HOST', 'hostname (default is localhost)') do |h|
+		options[:host]   = h
 	end
 
 	opts.on(
@@ -171,10 +180,7 @@ counter = DBO::Counter.new
 
 report "Start time: " + counter.start_time.to_s, bar
 
-out = go_get( dbo, caddy, caddy.keys, 1, options ).flatten  # Fix: "flatten" shouldn't be necessary.
-
-print_records out
-
+go_get( dbo, caddy, caddy.keys, 1, options )
 
 report bar,
 	"Start time:     " + counter.start_time.to_s,
