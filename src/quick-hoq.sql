@@ -8,4 +8,4 @@ WHERE  table_schema = 'new'
 
 SELECT *
 FROM   %{table_name}
-LIMIT  100
+LIMIT  1

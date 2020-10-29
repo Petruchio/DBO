@@ -54,7 +54,7 @@ class SoftHash < Hash
 		when 0
 			return super(key)
 		else
-			raise KeyError, "Multiple partially-matching keys."
+			raise KeyError, "\nMultiple partially-matching keys: " + matches * ', '
 		end
 	end
 

@@ -38,7 +38,7 @@ module DBO
 			parts = units.map { |u| [u, base.send(u)] }.to_h
 			parts[:day] -= 1
 			ret = "%i:%02i:%02i:%02i" % parts.values
-			ret.sub /^0:(?:00:)(?:0)?/, ''
+			ret.sub /^0:(?:0{1,2}:)(?:0)?/, ''    # Fix:  Obviously bad solution
 		end
 	end
 end

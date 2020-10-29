@@ -19,5 +19,9 @@ module DBO
 			end
 		end
 
+		def bar
+			'-' * 80 + "\n"
+		end
+
 	end
 end

@@ -20,12 +20,7 @@ def getpass
 	STDIN.getpass('Password: ')
 end
 
-def quiet *args
-end
-
-alias counter quiet
-
-
+ARGV << '-h' if ARGV.empty?
 
 def go_get db_handle, caddy, key_list, stack_level, options
 	query      = key_list.pop
@@ -64,12 +59,6 @@ def go_get db_handle, caddy, key_list, stack_level, options
 
 	report "\nCompleted #{query}:  " + c.elapsed_time + " elasped so far.", bar
 	ret
-end
-
-
-
-def bar
-	'-' * 80 + "\n"
 end
 
 
@@ -147,14 +136,18 @@ OptionParser.new do |opts|
 end.parse!
 
 
-exit if ARGV.empty?           # Fix:  should print usage before qutting
 target = ARGV.first           # Fix:  handle multiple target scripts
+
+#pp options
+#puts bar
+#exit
+
 
 
 case options[:rdbms]
 when 'postgresql'
 	require 'dbo/connection/postgresql'
-	dbo   = DBO::Connection::PostgreSQL.new dbname: 'brighthouse'
+	dbo   = DBO::Connection::PostgreSQL.new options[:dbname], dbname: 'brighthouse'
 when 'sqlserver'
 	require 'dbo/connection/sqlserver'
 	dbo    = DBO::Connection::SQLServer.new password: getpass
@@ -172,7 +165,7 @@ out = go_get( dbo, caddy, caddy.keys, 1, options ).flatten  # Fix: "flatten" sho
 
 if options[:test]
 	out.each do |record|
-		puts '-' * 80
+		puts bar
 		puts record.strip
 	end
 elsif options[:json]

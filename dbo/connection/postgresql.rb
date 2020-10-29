@@ -30,6 +30,12 @@ module DBO
 			# themselves could simply be arrays (or a Record type,
 			# based on an Array).
 
+			@errors = {
+				PG::UndefinedColumn => "Unknown column",
+				PG::UndefinedTable  => "Unknown table",
+				PG::SyntaxError     => "Syntax error"
+			}
+
 			def exec *args
 				@conn.exec(*args).to_a
 			end
