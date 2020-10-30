@@ -50,6 +50,18 @@ module DBO
 				exit
 			end
 
+			def try sql, name: ''
+				name = " in " + name.to_s if name ||= ''
+				begin
+					return @conn.exec(sql)
+				rescue PG::UndefinedColumn => e
+					fail e, "Unknown column#{name}.",   sql
+				rescue PG::UndefinedTable => e
+					fail e, "Unknown relation#{name}.", sql
+				rescue PG::SyntaxError => e
+					fail e, "Syntax error#{name}.",     sql
+				end
+			end
 
 		end
 	end

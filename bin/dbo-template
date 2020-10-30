@@ -26,6 +26,10 @@ def pragma? key    # encapsulate, because the syntax isn't settled
 	key =~ /^@/
 end
 
+def the_query params:, sql:, throttle: false
+	sleep throttle if throttle
+end
+
 def go_get db_handle, caddy, key_list, stack_level, options
 	query      = key_list.pop
 	forking    = false
@@ -69,18 +73,11 @@ def go_get db_handle, caddy, key_list, stack_level, options
 			if( options[:test] && stack_level == 1 )
 				print_sql sql
 			else
-				begin
-					if stack_level == 1
-						print_records db_handle.exec(sql)
-					else
-						ret << db_handle.exec(sql)
-					end
-				rescue PG::UndefinedColumn => e
-					db_handle.fail e, "Unknown column in #{query}.", sql
-				rescue PG::UndefinedTable => e
-					db_handle.fail e, "Unknown relation in #{query}.", sql
-				rescue PG::SyntaxError => e
-					db_handle.fail e, "Syntax error in #{query}.", sql
+				result = db_handle.try sql, name: query
+				if stack_level == 1
+					print_records result
+				else
+					ret << result
 				end
 				sleep options[:throttle] if options.has_key? :throttle
 			end
