@@ -28,6 +28,13 @@ end
 
 def go_get db_handle, caddy, key_list, stack_level, options
 	query      = key_list.pop
+	forking    = false
+	if query   =~ /^@fork/
+		forking  = true
+		query    = key_list.pop
+		raise "two consecutive fork directivess" if query == '@fork'
+		report "Beginning to fork sub-queries."
+	end
 	sql_tmpl   = caddy[query]
 	c          = DBO::Counter.new
 	ret        = []
@@ -50,6 +57,12 @@ def go_get db_handle, caddy, key_list, stack_level, options
 	report "Processing #{query} (#{results_of_queries.flatten.length} queries)"
 
 	results_of_queries.each do |param_list|
+		if forking
+			if pid = fork
+				Process.wait2
+				next
+			end
+		end
 		param_list.each do |params|
 			params.transform_keys! { |k| k.to_sym }
 			sql = sql_tmpl % params
@@ -73,6 +86,7 @@ def go_get db_handle, caddy, key_list, stack_level, options
 			end
 			report c, n: false
 		end
+		break if forking
 	end
 
 	report "\nCompleted #{query}:  " + c.elapsed_time + " elasped so far.", bar
