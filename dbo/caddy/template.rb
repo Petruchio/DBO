@@ -12,6 +12,7 @@ module DBO
 			end
 
 			def render key = @default, **args
+				raise "Invalid key:  #{key}" unless has_key?(key)
 				self[key] % args
 			end
 

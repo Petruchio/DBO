@@ -1,10 +1,12 @@
 require 'dbo/softhash'
+require 'dbo/hash/queue'
 
 module DBO
 	module Caddy
 		class Text < SoftHash
+			include DBO::Hash::Queue
 
-			attr_accessor :strip, :dense
+			attr_accessor :strip, :dense, :position, :orientation
 
 			def self.valid_file? file
 				f = new file
@@ -21,6 +23,8 @@ module DBO
 			}x
 
 			def initialize *file, strip: false, dense: false, soft: false
+				@position    = 0
+				@orientation = :forward
 				hard! unless soft
 				@strip, @dense = strip, dense
 				return if file.empty?
@@ -54,9 +58,13 @@ module DBO
 				self
 			end
 
+			# Fix:  This method_missing call is an old idea about
+			# generating methods from data.  It should probably go,
+			# but I haven't thought it through yet.
+
 			def method_missing name, *args
-				if @caddy.respond_to? name
-					@caddy.send name, *args
+				if respond_to? name
+					send name, *args
 				else
 					super
 				end

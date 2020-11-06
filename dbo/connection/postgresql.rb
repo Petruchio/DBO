@@ -20,7 +20,7 @@ module DBO
 				name = name.uniq.reject { |n| n.nil? }
 				arguments = (name.size > 0) ? @pgpass[name.first] : args
 
-				@conn = PG.connect **arguments
+				@conn = PG.connect(**arguments)
 
 			end
 

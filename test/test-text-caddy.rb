@@ -5,6 +5,7 @@ $:.unshift '.'
 require 'dbo/caddy/text'
 
 class TestTextCaddy < Minitest::Test
+
 	def setup
 		puts "\nTesting DBO::Caddy::Text"
 		$:.each do |dir|
@@ -13,6 +14,7 @@ class TestTextCaddy < Minitest::Test
 		end
 		raise "Couldn't find text-caddy.rb." unless @mod
 	end
+
 	def test_text_caddy
 		assert_kind_of DBO::Caddy::Text, t1 = DBO::Caddy::Text.new(__FILE__)
 		assert_kind_of(
@@ -33,6 +35,7 @@ class TestTextCaddy < Minitest::Test
 		assert_nil   t2[:ba]
 		t2.soft!
 		assert_equal 'Nilbog', t2[:ba]
+
 	end
 
 end

@@ -40,8 +40,8 @@ module DBO
 					target = []
 					entries.each do |e|
 						e =~ @@pgpass_regex
-						host, port, dbname, user, password = *Regexp.last_match.to_s.split(/:/)
-						host = port = host     # Fix:  This is just to stop warnings.
+#						host, port, dbname, user, password = *Regexp.last_match.to_s.split(/:/)
+						host,    _, dbname, user, _ = *Regexp.last_match.to_s.split(/:/)
 						key = "---> #{user}@#{host}:#{dbname}"
 						target.push key, e.chomp
 					end

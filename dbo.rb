@@ -1,5 +1,5 @@
 require 'securerandom'
-require 'template-caddy'
+require 'dbo/sql/caddy'
 require "anbt-sql-formatter/formatter"
 
 module DBO

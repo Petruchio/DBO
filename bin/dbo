@@ -2,10 +2,13 @@
 
 require 'optparse'
 require 'dbo/connection/postgresql'
-
+require 'dbo/caddy/sql'
 prog    = File.basename $0
 cmd     = ARGV.shift
 options = {}
+
+trap('INT')  { warn "\nERROR:  canceling due to user request."; exit }
+trap('PIPE') { exit }
 
 OptionParser.new do |opts|
 	opts.banner = "Usage: #{prog} <command> [options]"
@@ -31,17 +34,16 @@ options = {
 	"view-to-table":  ['-s', '--schemata SCHEMATA', '']
 }
 
+<<COMMENT
 OptionParser.new do |opts|
 	opts.banner = banners[cmd]
-	opts.on( *options[cmd] ) do |v|
-
 
 	tables: OptionParser.new do |opts|
 		opts.banner = "Usage: tables [options]"
 		opts.on("-s", "--schemata SCHEMATA", "") do |v|
 			options[:force] = v
 		end
-	end,
+	end
 
 	views: OptionParser.new do |opts|
 		opts.banner = "Usage: baz [options]"
@@ -63,14 +65,15 @@ OptionParser.new do |opts|
 			options[:quiet] = v
 		end
 	end
+end
+COMMENT
 
-}
+puts "Being quick"       if options[:quick]
 
-$dbo = DBO::Connection::Postgresql.new
-
-puts "Being quick"                          if options[:quick]
-
-rs = Redshift.new
+caddy = DBO::Caddy::SQL.new(
+	File.expand_path(__FILE__),
+	database: DBO::Connection::PostgreSQL.new(dbname: 'brighthouse')
+)
 
 args = ARGV.to_a
 
@@ -78,17 +81,63 @@ unless STDIN.tty?
 	args += STDIN.map { |w| w.chomp }
 end
 
-command = false
-
-case command
+case cmd
 	when 'tables'
-		puts rs.tables
+		puts caddy.use(:tables).map { |row|
+			row.values_at( 'table_schema', 'table_name' ) * '.'
+		}
 	when 'views'
-		puts rs.views
+		puts caddy.use(:views).map { |row|
+			row.values_at( 'table_schema', 'table_name' ) * '.'
+		}
 	when 'schemata'
-		puts rs.schemata
+		puts caddy.use(:schemata).map { |row|
+			row.values_at( 'schema_name' )
+		}
 	when 'view-to-table'
-		puts rs.dump_view_as_table( view: args.first )
+		schema, view = *ARGV.first.split('.')
+		results = caddy.use(:"view-to-table", view: view, table_schema: schema)
+		cols = []
+		results.each do |r|
+			cols[ r['ordinal_position'].to_i - 1 ] = r
+		end
+#		cols.each { |c| pp c }
+		out =  []
+		len = cols.map { |r| r['column_name'].length }.max
+		cols.each do |c|
+			out << "%-#{len}s %s" %  c.values_at('column_name', 'data_type')
+		end
+		puts "CREATE TABLE #{view} ("
+		puts out * ",\n"
+		puts ');'
+	when 'dump-table'
+		fqtn = ARGV.first
+		results = caddy.use(:"dump-table", table: ARGV.first)
+		puts results.map { |row| row.values * "\t" }
 	else
 		abort "Unknown comand: #{command}"
 end
+
+__END__
+
+---> tables
+
+SELECT * FROM information_schema.tables
+
+---> views
+
+SELECT * FROM information_schema.views
+
+---> schemata
+
+SELECT * FROM information_schema.schemata
+
+---> dump-table
+
+SELECT * FROM %{table}
+
+---> view-to-table
+
+SELECT * FROM information_schema.columns
+WHERE table_schema = '%{table_schema}'
+AND   table_name   = '%{view}'
