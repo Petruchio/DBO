@@ -14,7 +14,14 @@ module DBO
 			@db = Database.first
 			@t1 = Database['template1']
 			@t1.find_schemata
-			@s1 = Schema['information_schema']
+			@s1 = Schema[:'information_schema']
+#			Schema.all.each do |s|
+#				p s.name
+#				puts "*" * 80
+#			end
+#			p Schema.size
+#			p @s1
+#			p Schema.all.map { |s| s.name }
 			@s1.find_tables
 		end
 

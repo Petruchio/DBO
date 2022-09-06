@@ -11,13 +11,11 @@ module DBO
 			END
 		}
 
-		def initialize *args
-			arg    = args.first
-			@name  = arg['schema_name']
-			@owner = arg['schema_owner']
+		def initialize **args
+			@owner = schema_owner
 			@sql  = {}
-			self.class.sql.each { |k,v| @sql[k] = v % [ @name ] }
-			super *args
+			self.class.get_sql name: name
+			super **args
 		end
 
 		def find_tables

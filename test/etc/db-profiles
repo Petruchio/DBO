@@ -1,0 +1,9 @@
+default:
+  adapter:  postgres
+  host:     localhost
+  port:     5432
+  user:     alphonso
+
+snazzy:
+  database: snazzy_stuff
+  password: Badge nucleus moocher.
