@@ -13,7 +13,8 @@ module DBO
 
 		def initialize name:, connection:
 			@connection = connection
-			sql = "SELECT * FROM pg_database WHERE datname = '#{name}'"
+			load_sql
+			sql = @sql[:info] % { name: name }
 			data = connection.query(sql).first
 
 			@name             = name
@@ -26,7 +27,9 @@ module DBO
 			@datlastsysoid    = data[:datlastsysoid].to_i
 		end
 
-		def schemata
+		def schema_names
+			sql = @sql[:schema_names] % { name: name }
+			@connection.query( sql ).map { |row| row.values.first }
 		end
 
 		def to_str

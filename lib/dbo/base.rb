@@ -1,4 +1,6 @@
 require 'dbo'
+require 'dbo/template'
+require 'haml'
 
 module DBO
 	class Base
@@ -12,23 +14,36 @@ module DBO
 		end
 
 		def name_to_path
-			ret = self.class.to_s.downcase.sub(/[^:]*::/, '').gsub(/::/, '/')
-			File.absolute_path ret
+			self.class.to_s.downcase.sub(/[^:]*::/, '').gsub(/::/, '/')
 		end
 
 		def sql_path
-			ret = DBO.path + '/sql/' + name_to_path + '.sql'
-			File.absolute_path ret
+			DBO.path + '/sql/' + name_to_path + '.sql'
 		end
 
 		def html_path
-			ret = DBO.path + '/views/html/' + name_to_path + '.html'
-			File.absolute_path ret
+			DBO.path + '/views/html/' + name_to_path + '.haml'
 		end
 
 		def text_path
-			ret = DBO.path + '/views/text/' + name_to_path + '.html'
-			File.absolute_path ret
+			DBO.path + '/views/text/' + name_to_path + '.txt'
+		end
+
+		def load_sql
+			@sql = Template.new(sql_path).values
+		end
+
+		def load_haml
+			File.read html_path
+		end
+
+		def load_text
+			File.read text_path
+		end
+
+		def as_html
+			haml = load_haml
+			Haml::Engine.new(haml).render(self)
 		end
 
 	end
