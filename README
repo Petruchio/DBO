@@ -1,0 +1,18 @@
+DBO, or DataBase Objects, is a library for interacting with
+relational databases.
+
+This software library is:
+
+         Copyright 2018 Ray Brinzer <ray@brinzer.net>
+
+It is licenced under the GPL (GNU Public License).  This means you
+have the right to use it.  For details on what you can and can't
+do with it, read the License.txt which should be included with
+this software.
+
+Alternately, the license, as well as links to documentation such
+as Frequently Asked Questions, may be found here:
+
+https://www.gnu.org/licenses/gpl-3.0.en.html
+
+Happy hacking!

@@ -1,0 +1,24 @@
+
+
+
+default:
+  adapter:  postgres
+  host:     localhost
+  port:     5432
+  user:     ray
+
+local_truber:
+  database: truber
+  password: repulsive valley stallion
+
+template1:
+  database: template1
+  password: repulsive valley stallion
+
+truber_dev:
+  database: truber_dev
+  password: repulsive valley stallion
+
+profile_set:
+
+

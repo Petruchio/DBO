@@ -1,0 +1,11 @@
+Host truber-db
+	User            ray
+	Hostname        truber-db
+	Port            5432
+	Database        truber
+
+Host ion
+	User            ray
+	Hostname        ion
+	Port            5432
+	Database        truber

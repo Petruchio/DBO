@@ -1,80 +1,102 @@
 require 'yaml'
 require 'symbolize_keys_recursively'
 require 'dbo/utility'
-require 'json'
-
-# NB: Composing everything with chains of short method calls is cute,
-# but this code is really inefficient.  Should refactor.
-#
-# Also, the distribution of responsibilities between the class and the
-# instances needs to be considered more closely.  For now, it works though.
+require 'sequel'
+require 'cgi'
+require 'dbo/profile/parser'
 
 module DBO
 	class Profile
 
-		@sources = [ ENV['HOME'] + '/.db-profiles' ] # Default
+		@@url_template = '%<adapter>s://%<user>s:%<password>s@%<host>s/%<database>s'
 
-		class << self
+		@@necessary_keys = [
+			:adapter, :user, :password, :host, :database, :port
+		]
 
-			attr_reader :sources, :data
+		attr_accessor :warnings
 
-			def set_sources *list
-				@sources = list
+		def initialize warnings: true
+			@current = nil
+			@warnings = warnings
+			@config_file   = ENV['DBO_PROFILES']
+			@config_file ||= ENV['HOME'] + '/.dbo-profiles'
+			load_config
+		end
+
+		def profiles
+			@config.keys
+		end
+
+		def [] profile
+			@config[:default].merge @config[profile.to_sym]
+		end
+
+		def url profile
+			unless profiles.include? profile.to_sym # Warning:  not checking for file changes.
+				raise "Unknown profile: #{profile}"
+			end
+			prof = self[profile]
+			args = prof.map { |k,v| [k, CGI.escape(v.to_s)] }.to_h
+			@current = @@url_template % args
+			@current.gsub(/\+/, '%20')    # Shouldn't be necessary... but it is.  Find out why.
+		end
+
+		def connect profile
+			db_url = url(profile)
+			puts db_url
+			Sequel.connect db_url
+		end
+
+		private
+
+			# TODO:  Add checks to this:
+
+			def load_config
+				@config = YAML.load_file @config_file
+				@config.symbolize_keys_recursively!
 			end
 
-			def load
+			# Broken:
+
+			def missing_keys
+				necessary_keys - profile.keys
+			end
+
+			#-- Stolen from net/ssh/config.rb
+
+			def parse_lines text
 				ret = {}
-				sources.each do |f|
-					ret.merge! YAML.load_file(f).symbolize_keys_recursively!
+
+				text.each do |line|
+					next if line =~ /^\s*(?:#.*)?$/
+					if line =~ /^\s*(\S+)\s*=(.*)$/
+						key, value = $1, $2
+					else
+						key, value = line.strip.split(/\s+/, 2)
+					end
+
+					next if value.nil?
+
+					key.downcase!
+					value = unquote value
+
 				end
-				@data = ret
+				ret
 			end
 
-			def default
-				include?(:default) ? @data[:default] : {}
+			def unquote string
+				string =~ /^"(.*)"$/ ? Regexp.last_match(1) : string
 			end
 
-			def list
-				load.keys
-			end
 
-			def include? name
-				list.include? name.to_sym
-			end
-
-			def all
-				list.map { |profile|
-					"Placeholder:  create #{profile}."
-				}
-			end
-
-			def [] name
-				self.new name
-			end
-
+=begin
+		unless @config.has_key? profile
+			die "Unknown profile: #{profile}"
 		end
 
-
-		attr_accessor :sources, :values
-
-		def initialize name
-			raise "Unknown profile: #{name}" unless self.class.include? name
-			@values = self.class.load[name.to_sym].merge self.class.default
-		end
-
-		def [] key
-			values[key]
-		end
-
-		def to_url
-			url_template = '%<adapter>s://%<user>s:%<password>s@%<host>s/%<database>s'
-			connect_url = url_template % @values
-			connect_url.gsub(/ /, '%20')
-		end
-
-		def to_json
-			JSON.generate @values
-		end
+		profile = config[:default].merge config[profile]
+=end
 
 	end
 end

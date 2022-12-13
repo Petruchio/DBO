@@ -1,0 +1,17 @@
+Host default
+	Adapter   postgres
+	Host      localhost
+	Port      5432
+	User      ray
+	Password  repulsive valley stallion
+
+Host truber-db
+	User      ray
+	Adapter   postgres
+	Hostname  truber-db
+	Port      5432
+
+Host ion
+	User      ray
+	Hostname  ion
+	Port      5432
